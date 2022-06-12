@@ -56,27 +56,36 @@ resource "google_vpc_access_connector" "connector" {
 
 resource "google_cloudfunctions_function" "function" {
   project                      = var.project_id
-  region                       = var.region
-  name                         = "${local.prefix}${var.name}"
-  description                  = var.description
-  runtime                      = var.function_config.runtime
-  available_memory_mb          = var.function_config.memory
-  max_instances                = var.function_config.instances
-  timeout                      = var.function_config.timeout
-  entry_point                  = var.function_config.entry_point
-  environment_variables        = var.environment_variables
-  secret_environment_variables = var.secret_environment_variables
-  service_account_email        = local.service_account_email
-  source_archive_bucket        = local.bucket
-  source_archive_object        = google_storage_bucket_object.bundle.name
-  labels                       = var.labels
-  trigger_http                 = var.trigger_config == null ? true : null
-  ingress_settings             = var.ingress_settings
+  region                = var.region
+  name                  = "${local.prefix}${var.name}"
+  description           = var.description
+  runtime               = var.function_config.runtime
+  available_memory_mb   = var.function_config.memory
+  max_instances         = var.function_config.instances
+  timeout               = var.function_config.timeout
+  entry_point           = var.function_config.entry_point
+  environment_variables = var.environment_variables
+  service_account_email = local.service_account_email
+  source_archive_bucket = local.bucket
+  source_archive_object = google_storage_bucket_object.bundle.name
+  labels                = var.labels
+  trigger_http          = var.trigger_config == null ? true : null
+  ingress_settings      = var.ingress_settings
 
   vpc_connector                 = local.vpc_connector
   vpc_connector_egress_settings = try(
     var.vpc_connector.egress_settings, null
   )
+
+  dynamic "secret_environment_variables" {
+    for_each = var.secret_environment_variables
+    iterator = secret
+    content {
+      key     = secret.value.key
+      secret  = secret.value.secret
+      version = secret.value.version
+    }
+  }
 
   dynamic "event_trigger" {
     for_each = var.trigger_config == null ? [] : [""]
