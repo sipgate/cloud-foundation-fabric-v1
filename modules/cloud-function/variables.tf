@@ -49,9 +49,15 @@ variable "environment_variables" {
   default     = {}
 }
 
+variable "secret_environment_variables" {
+  description = "Cloud function secret environment variables."
+  type        = list(map(string))
+  default     = []
+}
+
 variable "function_config" {
   description = "Cloud function configuration."
-  type = object({
+  type        = object({
     entry_point = string
     instances   = number
     memory      = number

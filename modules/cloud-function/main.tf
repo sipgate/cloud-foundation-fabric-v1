@@ -16,32 +16,32 @@
 
 locals {
   bucket = (
-    var.bucket_name != null
-    ? var.bucket_name
-    : (
-      length(google_storage_bucket.bucket) > 0
-      ? google_storage_bucket.bucket[0].name
-      : null
-    )
+  var.bucket_name != null
+  ? var.bucket_name
+  : (
+  length(google_storage_bucket.bucket) > 0
+  ? google_storage_bucket.bucket[0].name
+  : null
   )
-  prefix = var.prefix == null ? "" : "${var.prefix}-"
+  )
+  prefix                = var.prefix == null ? "" : "${var.prefix}-"
   service_account_email = (
-    var.service_account_create
-    ? (
-      length(google_service_account.service_account) > 0
-      ? google_service_account.service_account[0].email
-      : null
-    )
-    : var.service_account
+  var.service_account_create
+  ? (
+  length(google_service_account.service_account) > 0
+  ? google_service_account.service_account[0].email
+  : null
+  )
+  : var.service_account
   )
   vpc_connector = (
-    var.vpc_connector == null
-    ? null
-    : (
-      try(var.vpc_connector.create, false) == false
-      ? var.vpc_connector.name
-      : google_vpc_access_connector.connector.0.id
-    )
+  var.vpc_connector == null
+  ? null
+  : (
+  try(var.vpc_connector.create, false) == false
+  ? var.vpc_connector.name
+  : google_vpc_access_connector.connector.0.id
+  )
   )
 }
 
@@ -55,24 +55,25 @@ resource "google_vpc_access_connector" "connector" {
 }
 
 resource "google_cloudfunctions_function" "function" {
-  project               = var.project_id
-  region                = var.region
-  name                  = "${local.prefix}${var.name}"
-  description           = var.description
-  runtime               = var.function_config.runtime
-  available_memory_mb   = var.function_config.memory
-  max_instances         = var.function_config.instances
-  timeout               = var.function_config.timeout
-  entry_point           = var.function_config.entry_point
-  environment_variables = var.environment_variables
-  service_account_email = local.service_account_email
-  source_archive_bucket = local.bucket
-  source_archive_object = google_storage_bucket_object.bundle.name
-  labels                = var.labels
-  trigger_http          = var.trigger_config == null ? true : null
-  ingress_settings      = var.ingress_settings
+  project                      = var.project_id
+  region                       = var.region
+  name                         = "${local.prefix}${var.name}"
+  description                  = var.description
+  runtime                      = var.function_config.runtime
+  available_memory_mb          = var.function_config.memory
+  max_instances                = var.function_config.instances
+  timeout                      = var.function_config.timeout
+  entry_point                  = var.function_config.entry_point
+  environment_variables        = var.environment_variables
+  secret_environment_variables = var.secret_environment_variables
+  service_account_email        = local.service_account_email
+  source_archive_bucket        = local.bucket
+  source_archive_object        = google_storage_bucket_object.bundle.name
+  labels                       = var.labels
+  trigger_http                 = var.trigger_config == null ? true : null
+  ingress_settings             = var.ingress_settings
 
-  vpc_connector = local.vpc_connector
+  vpc_connector                 = local.vpc_connector
   vpc_connector_egress_settings = try(
     var.vpc_connector.egress_settings, null
   )
@@ -107,10 +108,10 @@ resource "google_storage_bucket" "bucket" {
   project                     = var.project_id
   name                        = "${local.prefix}${var.bucket_name}"
   uniform_bucket_level_access = true
-  location = (
-    var.bucket_config.location == null
-    ? var.region
-    : var.bucket_config.location
+  location                    = (
+  var.bucket_config.location == null
+  ? var.region
+  : var.bucket_config.location
   )
   labels = var.labels
 
@@ -140,12 +141,12 @@ resource "google_storage_bucket_object" "bundle" {
 }
 
 data "archive_file" "bundle" {
-  type       = "zip"
-  source_dir = var.bundle_config.source_dir
+  type        = "zip"
+  source_dir  = var.bundle_config.source_dir
   output_path = (
-    var.bundle_config.output_path == null
-    ? "/tmp/bundle.zip"
-    : var.bundle_config.output_path
+  var.bundle_config.output_path == null
+  ? "/tmp/bundle.zip"
+  : var.bundle_config.output_path
   )
   output_file_mode = "0666"
   excludes         = var.bundle_config.excludes
