@@ -28,8 +28,12 @@ module "branch-dp-dev-cicd-repo" {
   project_id = var.automation.project_id
   name       = each.value.name
   iam = {
-    "roles/source.admin"  = [module.branch-dp-dev-sa.iam_email]
-    "roles/source.reader" = [module.branch-dp-dev-sa-cicd.0.iam_email]
+    "roles/source.admin" = compact([
+      try(module.branch-dp-dev-sa.0.iam_email, "")
+    ])
+    "roles/source.reader" = compact([
+      try(module.branch-dp-dev-sa-cicd.0.iam_email, "")
+    ])
   }
   triggers = {
     fast-03-dp-dev = {
@@ -37,7 +41,7 @@ module "branch-dp-dev-cicd-repo" {
       included_files = [
         "**/*json", "**/*tf", "**/*yaml", ".cloudbuild/workflow.yaml"
       ]
-      service_account = module.branch-dp-dev-sa.iam_email
+      service_account = module.branch-dp-dev-sa-cicd.0.id
       substitutions   = {}
       template = {
         project_id  = null
@@ -47,6 +51,7 @@ module "branch-dp-dev-cicd-repo" {
       }
     }
   }
+  depends_on = [module.branch-dp-dev-sa-cicd]
 }
 
 module "branch-dp-prod-cicd-repo" {
@@ -59,7 +64,7 @@ module "branch-dp-prod-cicd-repo" {
   project_id = var.automation.project_id
   name       = each.value.name
   iam = {
-    "roles/source.admin"  = [module.branch-dp-prod-sa.iam_email]
+    "roles/source.admin"  = [module.branch-dp-prod-sa.0.iam_email]
     "roles/source.reader" = [module.branch-dp-prod-sa-cicd.0.iam_email]
   }
   triggers = {
@@ -68,7 +73,7 @@ module "branch-dp-prod-cicd-repo" {
       included_files = [
         "**/*json", "**/*tf", "**/*yaml", ".cloudbuild/workflow.yaml"
       ]
-      service_account = module.branch-dp-prod-sa.iam_email
+      service_account = module.branch-dp-prod-sa-cicd.0.id
       substitutions   = {}
       template = {
         project_id  = null
@@ -78,6 +83,7 @@ module "branch-dp-prod-cicd-repo" {
       }
     }
   }
+  depends_on = [module.branch-dp-prod-sa-cicd]
 }
 
 # SAs used by CI/CD workflows to impersonate automation SAs
@@ -96,17 +102,21 @@ module "branch-dp-dev-sa-cicd" {
   iam = (
     each.value.type == "sourcerepo"
     # used directly from the cloud build trigger for source repos
-    ? {}
+    ? {
+      "roles/iam.serviceAccountUser" = local.automation_resman_sa
+    }
     # impersonated via workload identity federation for external repos
     : {
       "roles/iam.workloadIdentityUser" = [
         each.value.branch == null
         ? format(
           local.identity_providers[each.value.identity_provider].principalset_tpl,
+          var.automation.federated_identity_pool,
           each.value.name
         )
         : format(
           local.identity_providers[each.value.identity_provider].principal_tpl,
+          var.automation.federated_identity_pool,
           each.value.name,
           each.value.branch
         )
@@ -135,7 +145,9 @@ module "branch-dp-prod-sa-cicd" {
   iam = (
     each.value.type == "sourcerepo"
     # used directly from the cloud build trigger for source repos
-    ? {}
+    ? {
+      "roles/iam.serviceAccountUser" = local.automation_resman_sa
+    }
     # impersonated via workload identity federation for external repos
     : {
       "roles/iam.workloadIdentityUser" = [

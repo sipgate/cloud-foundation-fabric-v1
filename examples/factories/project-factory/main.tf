@@ -28,7 +28,7 @@ locals {
   _service_accounts_iam = {
     for r in local._service_accounts_iam_bindings : r => [
       for k, v in var.service_accounts :
-      "serviceAccount:${k}@${local._project_id}.iam.gserviceaccount.com"
+      module.service-accounts[k].iam_email
       if try(index(v, r), null) != null
     ]
   }
@@ -183,6 +183,7 @@ module "service-accounts" {
   for_each   = var.service_accounts
   name       = each.key
   project_id = module.project.project_id
+  iam        = lookup(var.service_accounts_iam, each.key, null)
 }
 
 resource "google_compute_subnetwork_iam_member" "default" {

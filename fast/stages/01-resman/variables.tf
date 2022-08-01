@@ -23,6 +23,7 @@ variable "automation" {
   type = object({
     outputs_bucket          = string
     project_id              = string
+    project_number          = string
     federated_identity_pool = string
     federated_identity_providers = map(object({
       issuer           = string
@@ -120,6 +121,24 @@ variable "custom_roles" {
     service_project_network_admin = string
   })
   default = null
+}
+
+variable "fast_features" {
+  # tfdoc:variable:source 00-bootstrap
+  description = "Selective control for top-level FAST features."
+  type = object({
+    data_platform   = bool
+    project_factory = bool
+    sandbox         = bool
+    teams           = bool
+  })
+  default = {
+    data_platform   = true
+    project_factory = true
+    sandbox         = true
+    teams           = true
+  }
+  # nullable = false
 }
 
 variable "groups" {
